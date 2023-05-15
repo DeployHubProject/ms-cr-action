@@ -31,13 +31,6 @@ inputs:
   chart_version:
     description: "Version of the Chart"
     required: true
-  repo:
-    description: "Repository for the chart updates"
-    required: true
-  sleep:
-    description: "Sleep time for GH page caching"
-    required: false
-    default: "5m"
   notes:
     description: "Release Notes"
     required: false
@@ -110,7 +103,7 @@ runs:
         git tag -f "${tag}"
         git push
         git push -f --tags
-        gh release create "${tag}" ${tag}.* --title "${tag}" --repo ${{ inputs.repo }} --notes "${{ inputs.notes }}"
+        gh release create "${tag}" ${tag}.* --title "${tag}" --notes "${{ inputs.notes }}"
 
         # Copy the release .tgz for indexing
         cp ${tag}.tgz ${{ inputs.chart }}/charts
