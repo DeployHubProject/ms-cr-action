@@ -103,7 +103,7 @@ runs:
         git tag -f "${tag}"
         git push
         git push -f --tags
-        gh release create "${tag}" ${tag}.* --title "${tag}" --notes "${{ inputs.notes }}"
+        release=$(gh release create "${tag}" ${tag}.* --title "${tag}" --notes "${{ inputs.notes }}")
 
         # Copy the release .tgz for indexing
         mkdir -p /tmp/charts
@@ -113,7 +113,7 @@ runs:
         git show gh-pages:index.yaml > /tmp/index.yaml
 
         # Index the new release into the index.yaml
-        helm repo index /tmp/charts --merge /tmp/index.yaml
+        helm repo index /tmp/charts --merge /tmp/index.yaml --url "${release}"
 
         # Save the new index.yaml
         mv /tmp/charts/index.yaml /tmp
