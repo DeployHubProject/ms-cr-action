@@ -1,20 +1,35 @@
 name: "Helm Chart Releaser"
 description: "Helm Chart Releaser that includes signing producing .asc file"
 inputs:
-  GPG_KEYRING_BASE64:
+  gpg_keyring_base64:
     description: "GPG Keyring in Base64"
     required: true
-  GPG_PASSPHRASE:
+  gpg_passphrase:
     description: "GPG pass phrase"
     required: true
-  GPG_KEY:
+  gpg_key:
     description: "GPG Key Name"
     required: true
-  GH_TOKEN:
+  gh_token:
     description: "GitHub Token that has access to create releases"
     required: true
+  image_repository:
+    description: "Image Repo"
+    required: false
+    default: ""
+  image_tag:
+    description: "Image tag"
+    required: false
+    default: ""
+  image_digest:
+    description: "Image Digest"
+    required: false
+    default: ""
   chart:
     description: "Directory for the Chart"
+    required: true
+  chart_version:
+    description: "Version of the Chart"
     required: true
   repo:
     description: "Repository for the chart updates"
@@ -35,52 +50,70 @@ runs:
       with:
         version: "3.11.1"
 
+    - name: Update Values and Chart
+      id: chart
+      uses: fjogeleit/yaml-update-action@d98ee6a10a971effea75480e3f315e4dacc89a23 # main
+      with:
+        commitChange: false
+        changes: |
+          {
+            "chart/${{ github.event.repository.name }}/values.yaml":
+            {
+              "image.repository": "${{ inputs.image_repository }}",
+              "image.tag": "${{ inputs.image_tag }}",
+              "image.sha": "${{ inputs.image_digest }}"
+            },
+            "chart/${{ github.event.repository.name }}/Chart.yaml":
+            {
+              "version": "${{ inputs.chart_version }}",
+              "appVersion": "${{ inputs.chart_version }}"
+            }
+          }
+
     - name: Run chart-releaser
       run: |
         set -x
-        GH_TOKEN="${{ inputs.GH_TOKEN }}"
-        GPG_KEYRING_BASE64="${{ inputs.GPG_KEYRING_BASE64 }}"
-        GPG_PASSPHRASE="${{ inputs.GPG_PASSPHRASE }}"
-        GPG_KEYRING="/tmp/secring.gpg"
-        GPG_PASSPHRASE_FILE="/tmp/passphrase"
+        gh_token="${{ inputs.gh_token }}"
+        gpg_keyring_base64="${{ inputs.gpg_keyring_base64 }}"
+        gpg_passphrase="${{ inputs.gpg_passphrase }}"
+        gpg_keyring="/tmp/secring.gpg"
+        gpg_passphrase_file="/tmp/passphrase"
 
         # Create keyring and passphrase file
-        base64 -d <<< "${GPG_KEYRING_BASE64}" > "${GPG_KEYRING}"
-        echo "${GPG_PASSPHRASE}" > "${GPG_PASSPHRASE_FILE}"
+        base64 -d <<< "${gpg_keyring_base64}" > "${gpg_keyring}"
+        echo "${gpg_passphrase}" > "${gpg_passphrase_file}"
 
-        # Stash any changes already made
-        git stash push
+        # Add changed Chart and values
+        git add ${{ inputs.chart }}/Chart.yaml
+        git add ${{ inputs.chart }}/values.yaml
+        git commit -m "Updated chart and values"
+        git push
+        git status
 
         # Pull all the branches
         git pull --all; for remote in `git branch -r | grep -v main | grep -v \>`; do git branch --track ${remote#origin/} $remote; done
 
-        # Apply any stashed changes
-        git stash pop
-
         # Helm Package with signing
-        TAG=$(basename $(helm package "${{ inputs.chart }}" -u --key "${{ inputs.GPG_KEY }}" --sign --keyring "${GPG_KEYRING}" --passphrase-file "${GPG_PASSPHRASE_FILE}" | cut -d: -f2) .tgz)
+        tag=$(basename $(helm package "${{ inputs.chart }}" -u --key "${{ inputs.gpg_key }}" --sign --keyring "${gpg_keyring}" --passphrase-file "${gpg_passphrase_file}" | cut -d: -f2) .tgz)
+        echo "Created ${tag}"
 
         # Clean up GPG and intermediate tgz files
-        rm -rf "${GPG_KEYRING}" "${GPG_PASSPHRASE_FILE}" ${{ inputs.chart }}/charts/*.tgz
+        rm -rf "${gpg_keyring}" "${gpg_passphrase_file}" ${{ inputs.chart }}/charts/*.tgz
 
         # Rename the signing .prov to .asc for OpenSSF Scorecard
         ls *.prov | xargs -I {} sh -c 'mv $1 `basename $1 .prov`.asc' - {}
 
         # Remove existing tags and releases
-        gh release delete "${TAG}" --cleanup-tag -y | test 1
+        gh release delete "${tag}" --cleanup-tag -y | test 1
 
         # Create new commit and release
-        echo "Created ${TAG}"
-        git add ${{ inputs.chart }}/Chart.yaml
-        git add ${{ inputs.chart }}/values.yaml
-        git commit -m "Updated chart and values"
-        git tag -f "${TAG}"
+        git tag -f "${tag}"
         git push
         git push -f --tags
-        gh release create "${TAG}" ${TAG}.* --title "${TAG}" --repo ${{ inputs.repo }} --notes "${{ inputs.notes }}"
+        gh release create "${tag}" ${tag}.* --title "${tag}" --repo ${{ inputs.repo }} --notes "${{ inputs.notes }}"
 
         # Copy the release .tgz for indexing
-        cp ${TAG}.tgz ${{ inputs.chart }}/charts
+        cp ${tag}.tgz ${{ inputs.chart }}/charts
 
         # Get the existing index.yaml for merging
         git show gh-pages:index.yaml > /tmp/index.yaml
@@ -98,6 +131,6 @@ runs:
         # Put the new index.yaml in place and commit/push it
         mv /tmp/index.yaml index.yaml
         git add index.yaml
-        git commit -m "Generate Main Charts ${TAG}"
+        git commit -m "Generate Main Charts ${tag}"
         git push
       shell: bash
