@@ -37,6 +37,7 @@ runs:
 
     - name: Run chart-releaser
       run: |
+        set -x
         GH_TOKEN="${{ inputs.GH_TOKEN }}"
         GPG_KEYRING_BASE64="${{ inputs.GPG_KEYRING_BASE64 }}"
         GPG_PASSPHRASE="${{ inputs.GPG_PASSPHRASE }}"
@@ -47,8 +48,14 @@ runs:
         base64 -d <<< "${GPG_KEYRING_BASE64}" > "${GPG_KEYRING}"
         echo "${GPG_PASSPHRASE}" > "${GPG_PASSPHRASE_FILE}"
 
+        # Stash any changes already made
+        git stash push
+
         # Pull all the branches
         git pull --all; for remote in `git branch -r | grep -v main | grep -v \>`; do git branch --track ${remote#origin/} $remote; done
+
+        # Apply any stashed changes
+        git stash pop
 
         # Helm Package with signing
         TAG=$(basename $(helm package "${{ inputs.chart }}" -u --key "${{ inputs.GPG_KEY }}" --sign --keyring "${GPG_KEYRING}" --passphrase-file "${GPG_PASSPHRASE_FILE}" | cut -d: -f2) .tgz)
@@ -65,7 +72,8 @@ runs:
         # Create new commit and release
         echo "Created ${TAG}"
         git add ${{ inputs.chart }}/Chart.yaml
-        git commit -m "Updated chart"
+        git add ${{ inputs.chart }}/values.yaml
+        git commit -m "Updated chart and values"
         git tag -f "${TAG}"
         git push
         git push -f --tags
