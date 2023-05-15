@@ -103,7 +103,7 @@ runs:
         git tag -f "${tag}"
         git push
         git push -f --tags
-        release=$(gh release create "${tag}" ${tag}.* --title "${tag}" --notes "${{ inputs.notes }}")
+        release=$(gh release create "${tag}" ${tag}.* --title "${tag}" --notes "${{ inputs.notes }}" | sed 's#/tag/#/download/#')
 
         # Copy the release .tgz for indexing
         mkdir -p /tmp/charts
