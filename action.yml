@@ -104,7 +104,7 @@ runs:
         ls *.prov | xargs -I {} sh -c 'mv $1 `basename $1 .prov`.asc' - {}
 
         # Remove existing tags and releases
-        gh release delete "${tag}" --cleanup-tag -y | test 1
+        gh release delete "${tag}" --cleanup-tag -y || true
 
         # Create new commit and release
         git tag -f "${tag}"
