@@ -106,16 +106,17 @@ runs:
         gh release create "${tag}" ${tag}.* --title "${tag}" --notes "${{ inputs.notes }}"
 
         # Copy the release .tgz for indexing
-        cp ${tag}.tgz ${{ inputs.chart }}/charts
+        mkdir -p /tmp/charts
+        mv ${tag}.tgz /tmp/charts
 
         # Get the existing index.yaml for merging
         git show gh-pages:index.yaml > /tmp/index.yaml
 
         # Index the new release into the index.yaml
-        helm repo index  ${{ inputs.chart }}/charts --merge /tmp/index.yaml
+        helm repo index /tmp/charts --merge /tmp/index.yaml
 
         # Save the new index.yaml
-        mv ${{ inputs.chart }}/charts/index.yaml /tmp
+        mv /tmp/charts/index.yaml /tmp
 
         # Cleanup any working files and switch to the gh-pages branch
         git reset --hard
