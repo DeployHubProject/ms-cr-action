@@ -134,3 +134,5 @@ runs:
         git commit -m "Generate Main Charts ${tag}"
         git push
       shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.gh_token }}
