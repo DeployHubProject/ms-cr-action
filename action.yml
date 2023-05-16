@@ -144,12 +144,13 @@ runs:
         git reset --hard
         git clean -x -f -d
         git checkout gh-pages
+        git pull
 
         # Put the new index.yaml in place and commit/push it
         mv /tmp/index.yaml index.yaml
         git add index.yaml
         git commit -m "Generate Charts ${tag}"
-        git push
+        git push -f
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.gh_token }}
