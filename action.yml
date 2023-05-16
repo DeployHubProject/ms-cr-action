@@ -13,6 +13,13 @@ inputs:
   gh_token:
     description: "GitHub Token that has access to create releases"
     required: true
+  chart:
+    description: "Directory for the Chart"
+    required: true
+  chart_version:
+    description: "Version of the Chart"
+    required: false
+    default: ""
   image_repository:
     description: "Image Repo"
     required: false
@@ -25,12 +32,6 @@ inputs:
     description: "Image Digest"
     required: false
     default: ""
-  chart:
-    description: "Directory for the Chart"
-    required: true
-  chart_version:
-    description: "Version of the Chart"
-    required: true
   notes:
     description: "Release Notes"
     required: false
@@ -44,6 +45,7 @@ runs:
         version: "3.11.1"
 
     - name: Update Values and Chart
+      if: "${{ inputs.chart_version != '' }}"
       id: chart
       uses: fjogeleit/yaml-update-action@d98ee6a10a971effea75480e3f315e4dacc89a23 # main
       with:
@@ -63,6 +65,22 @@ runs:
             }
           }
 
+    - name: Use Node.js
+      if: "${{ inputs.chart_version == '' }}"
+      id: node
+      uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
+      with:
+        node-version: '18.x'
+
+    - name: Update Main Chart
+      if: "${{ inputs.chart_version == '' }}"
+      id: main_chart
+      run: |
+        sleep 5m
+        yarn install
+        node main.js
+      shell: bash
+
     - name: Run chart-releaser
       run: |
         set -x
@@ -78,7 +96,9 @@ runs:
 
         # Add changed Chart and values
         git add ${{ inputs.chart }}/Chart.yaml
-        git add ${{ inputs.chart }}/values.yaml
+        if test -f "${{ inputs.chart }}/values.yaml"; then
+          git add ${{ inputs.chart }}/values.yaml
+        fi
         git commit -m "Updated chart and values"
         git push
         git status
@@ -125,7 +145,7 @@ runs:
         # Put the new index.yaml in place and commit/push it
         mv /tmp/index.yaml index.yaml
         git add index.yaml
-        git commit -m "Generate Main Charts ${tag}"
+        git commit -m "Generate Charts ${tag}"
         git push
       shell: bash
       env:
