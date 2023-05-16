@@ -85,6 +85,9 @@ runs:
         sleep 5m
         yarn install
         node main.js
+        git add ${{ inputs.chart }}/Chart.yaml
+        git commit -m "Generate Main Chart"
+        git push
       shell: bash
 
     - name: Run chart-releaser
