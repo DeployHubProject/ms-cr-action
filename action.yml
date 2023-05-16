@@ -39,6 +39,12 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Get all branches
+      id: branches
+      run: |
+        git pull --all; for remote in `git branch -r | grep -v main | grep -v \>`; do git branch --track ${remote#origin/} $remote; done
+      shell: bash
+
     - name: Install Helm
       uses: azure/setup-helm@5119fcb9089d432beecbf79bb2c7915207344b78 # v3.5
       with:
@@ -94,18 +100,6 @@ runs:
         base64 -d <<< "${gpg_keyring_base64}" > "${gpg_keyring}"
         echo "${gpg_passphrase}" > "${gpg_passphrase_file}"
 
-        # Add changed Chart and values
-        git add ${{ inputs.chart }}/Chart.yaml
-        if test -f "${{ inputs.chart }}/values.yaml"; then
-          git add ${{ inputs.chart }}/values.yaml
-        fi
-        git commit -m "Updated chart and values"
-        git push
-        git status
-
-        # Pull all the branches
-        git pull --all; for remote in `git branch -r | grep -v main | grep -v \>`; do git branch --track ${remote#origin/} $remote; done
-
         # Loop until all of the dependencies are downloaded
         helm dep update "${{ inputs.chart }}"
         while [ $? -ne 0 ]
@@ -129,7 +123,6 @@ runs:
 
         # Create new commit and release
         git tag -f "${tag}"
-        git push
         git push -f --tags
         release=$(gh release create "${tag}" ${tag}.* --title "${tag}" --notes "${{ inputs.notes }}" | sed 's#/tag/#/download/#')
 
@@ -148,6 +141,7 @@ runs:
 
         # Cleanup any working files and switch to the gh-pages branch
         git reset --hard
+        git clean -x -f -d
         git checkout gh-pages
 
         # Put the new index.yaml in place and commit/push it
