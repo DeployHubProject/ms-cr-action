@@ -70,7 +70,7 @@ runs:
       id: node
       uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
       with:
-        node-version: '18.x'
+        node-version: "18.x"
 
     - name: Update Main Chart
       if: "${{ inputs.chart_version == '' }}"
@@ -105,6 +105,14 @@ runs:
 
         # Pull all the branches
         git pull --all; for remote in `git branch -r | grep -v main | grep -v \>`; do git branch --track ${remote#origin/} $remote; done
+
+        # Loop until all of the dependencies are downloaded
+        helm dep update "${{ inputs.chart }}"
+        while [ $? -ne 0 ]
+        do
+          sleep 1m
+          helm dep update "${{ inputs.chart }}"
+        done
 
         # Helm Package with signing
         tag=$(basename $(helm package "${{ inputs.chart }}" -u --key "${{ inputs.gpg_key }}" --sign --keyring "${gpg_keyring}" --passphrase-file "${gpg_passphrase_file}" | cut -d: -f2) .tgz)
