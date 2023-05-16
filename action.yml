@@ -104,12 +104,14 @@ runs:
         echo "${gpg_passphrase}" > "${gpg_passphrase_file}"
 
         # Loop until all of the dependencies are downloaded
+        set +o pipefail +e
         helm dep update "${{ inputs.chart }}"
         while [ $? -ne 0 ]
         do
           sleep 1m
           helm dep update "${{ inputs.chart }}"
         done
+        set -o pipefail -e
 
         # Helm Package with signing
         tag=$(basename $(helm package "${{ inputs.chart }}" -u --key "${{ inputs.gpg_key }}" --sign --keyring "${gpg_keyring}" --passphrase-file "${gpg_passphrase_file}" | cut -d: -f2) .tgz)
