@@ -13,6 +13,9 @@ inputs:
   gh_token:
     description: "GitHub Token that has access to create releases"
     required: true
+  gh_handle:
+    description: "GitHub Handle for the user"
+    required: true
   chart:
     description: "Directory for the Chart"
     required: true
@@ -51,8 +54,8 @@ runs:
     - name: Configure Git
       id: git
       run: |
-        git config user.name "${{ needs.setenv.outputs.gh_handle }}"
-        git config user.email "${{ needs.setenv.outputs.gh_handle }}@users.noreply.github.com"
+        git config user.name "${{ inputs.gh_handle }}"
+        git config user.email "${{ inputs.gh_handle }}@users.noreply.github.com"
 
     - name: Get all branches
       id: branches
