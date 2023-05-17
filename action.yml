@@ -42,11 +42,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Harden Runner
-      uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776 # v2.2.1
-      with:
-        egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
-
     - name: Checkout
       id: checkout
       uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
@@ -56,6 +51,7 @@ runs:
       run: |
         git config user.name "${{ inputs.gh_handle }}"
         git config user.email "${{ inputs.gh_handle }}@users.noreply.github.com"
+      shell: bash
 
     - name: Get all branches
       id: branches
@@ -64,6 +60,7 @@ runs:
       shell: bash
 
     - name: Install Helm
+      id: helm
       uses: azure/setup-helm@5119fcb9089d432beecbf79bb2c7915207344b78 # v3.5
       with:
         version: "3.11.1"
@@ -110,6 +107,7 @@ runs:
       shell: bash
 
     - name: Run chart-releaser
+      id: cr
       run: |
         set -x
         gh_token="${{ inputs.gh_token }}"
