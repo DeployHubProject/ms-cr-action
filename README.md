@@ -1,3 +1,3 @@
-# Helm Chart Release Action
+# SBOM Reusable Action
 
-This action uses the helm and gh command line to package, index and create a release that includes the .asc signing file.
+This action runs syft to generate the SBOM and the Ortelius CLI to upload the SBOM and gathered evidence to DeployHub SaaS.s
