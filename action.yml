@@ -73,13 +73,13 @@ runs:
         commitChange: false
         changes: |
           {
-            "chart/${{ github.event.repository.name }}/values.yaml":
+            "${{ inputs.chart }}/values.yaml":
             {
               "image.repository": "${{ inputs.image_repository }}",
               "image.tag": "${{ inputs.image_tag }}",
               "image.sha": "${{ inputs.image_digest }}"
             },
-            "chart/${{ github.event.repository.name }}/Chart.yaml":
+            "${{ inputs.chart }}/Chart.yaml":
             {
               "version": "${{ inputs.chart_version }}",
               "appVersion": "${{ inputs.chart_version }}"
