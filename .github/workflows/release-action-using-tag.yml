@@ -7,7 +7,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@72f2cec99f417b1a1c5e2e88945068983b7965f9
+      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
       - name: Bump version and push tag
         id: tag_version
         uses: mathieudutour/github-tag-action@fcfbdceb3093f6d85a3b194740f8c6cec632f4e2 # v6.1
