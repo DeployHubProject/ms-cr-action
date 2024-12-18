@@ -68,7 +68,7 @@ runs:
     - name: Update Values and Chart
       if: "${{ inputs.chart_version != '' }}"
       id: chart
-      uses: fjogeleit/yaml-update-action@fe7ca6ac478301cbc0bb4303042bde10417b77af # main
+      uses: fjogeleit/yaml-update-action@a01638ef72620fa182903cb6cff745a70bc94db7 # main
       with:
         commitChange: false
         changes: |
